@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="cn">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>定位相关控件</title>
+    <style type="text/css">
+        body,
+        html {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            font-family: "微软雅黑";
+        }
+
+        #container {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .device-marker {
+            width: 80px;
+            height: 80px;
+            text-align: center;
+            position: absolute;
+        }
+
+        .device-marker img {}
+
+        .device-marker .mdi {
+            font-size: 40px;
+        }
+    </style>
+    <script type="text/javascript"
+        src="//api.map.baidu.com/api?type=webgl&v=1.0&ak=7Cc5Kmn672miPzG4qQhvlOrERcXMMinq"></script>
+    <script type="text/javascript"
+        src="//api.map.baidu.com/api?type=subway&v=1.0&ak=7Cc5Kmn672miPzG4qQhvlOrERcXMMinq"></script>
+    <link href="//mapopen.bj.bcebos.com/github/BMapGLLib/RichMarker/src/RichMarker.min.js" rel="stylesheet">
+    <script src="//mapopen.bj.bcebos.com/github/BMapGLLib/RichMarker/src/RichMarker.min.js"></script>
+
+    <link href="https://unpkg.com/@mdi/font@6.4.95/css/materialdesignicons.min.css" media="all" rel="stylesheet"
+        type="text/css" />
+</head>
+
+<body>
+    <div id="container"></div>
+    <script>
+        var map = new BMapGL.Map('container');
+        map.enableScrollWheelZoom(true);     //开启鼠标滚轮缩放
+        var scaleCtrl = new BMapGL.ScaleControl();  // 添加比例尺控件
+        map.addControl(scaleCtrl);
+        var zoomCtrl = new BMapGL.ZoomControl();  // 添加比例尺控件
+        map.addControl(zoomCtrl);
+
+        // 创建定位控件
+        var locationControl = new BMapGL.LocationControl({
+            // 控件的停靠位置（可选，默认左上角）
+            anchor: BMAP_ANCHOR_TOP_RIGHT,
+            // 控件基于停靠位置的偏移量（可选）
+            offset: new BMapGL.Size(20, 20)
+        });
+        // 将控件添加到地图上
+        map.addControl(locationControl);
+
+        // 添加定位事件
+        locationControl.addEventListener("locationSuccess", function (e) {
+            var address = '';
+            address += e.addressComponent.province;
+            address += e.addressComponent.city;
+            address += e.addressComponent.district;
+            address += e.addressComponent.street;
+            address += e.addressComponent.streetNumber;
+            alert("当前定位地址为：" + address);
+        });
+        locationControl.addEventListener("locationError", function (e) {
+            alert(e.message);
+        });
+        /* =========== 定位 ============ */
+        function addIconMarker(point, icon, key) {
+            var htm1 = `
+            <div class='device-marker'>
+                <i class="mdi ${icon.replace('mdi:', 'mdi-')}"></i>
+            </div>
+                `
+            var myRichMarker1 = new BMapGLLib.RichMarker(htm1, new BMapGL.Point(point.lng, point.lat));
+            map.addOverlay(myRichMarker1);
+            myRichMarker1.addEventListener('click', function (e) {
+                var pos = e.currentTarget._position
+                map.centerAndZoom(new BMapGL.Point(pos.lng, pos.lat), 15);
+            })
+        }
+
+        // 显示区域
+        function addZoneMarker() {
+            
+        }
+        // 绘制圆
+        var circle = new BMapGL.Circle(new BMapGL.Point(113.41776180241142, 30.3875269133129), 500, {
+            fillColor: "#FF9800", strokeColor: 'orange', strokeWeight: 1, fillOpacity: 0.3, strokeOpacity: 0.5
+        });
+        map.addOverlay(circle);
+        addIconMarker({
+            lat: 30.3875269133129,
+            lng: 113.41776180241142
+        }, 'mdi:home', 'zone.home')
+
+
+        addIconMarker({
+            lat: 31.3875269133129,
+            lng: 113.41776180241142
+        }, 'mdi:home', 'zone.home')
+
+        map.centerAndZoom(new BMapGL.Point(113.41776180241142, 30.3875269133129), 11);
+
+        /* =========== 右键菜单 ============ */
+        var menu = new BMapGL.ContextMenu();
+        var txtMenuItem = [{
+            text: '编辑地点',
+            callback: function () {
+
+            }
+        },
+        {
+            text: '地铁线路图',
+            callback: function (e) {
+                var geoc = new BMapGL.Geocoder();
+                geoc.getLocation(e, function (rs) {
+                    var addComp = rs.addressComponents;
+                    if (!addComp.city) {
+                        return alert(addComp.district + '没有地铁')
+                    }
+                    var city = addComp.city.replace('市', '')
+                    var subwaycity = BMapSub.SubwayCitiesList.find(ele => ele.name === city)
+                    if (subwaycity) {
+                        location.href = 'metro.html?city=' + city
+                    } else {
+                        alert(addComp.city + '没有地铁')
+                    }
+                })
+
+            }
+        }, {
+            text: '显示GPS坐标',
+            callback: function () {
+
+            }
+        }, {
+            text: '设置我的家到这里',
+            callback: function () {
+
+            }
+        }
+        ];
+        for (var i = 0; i < txtMenuItem.length; i++) {
+            menu.addItem(new BMapGL.MenuItem(txtMenuItem[i].text, txtMenuItem[i].callback, 100));
+        }
+        map.addContextMenu(menu);
+    </script>
+</body>
+
+</html>
