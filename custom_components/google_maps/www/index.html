@@ -20,143 +20,276 @@
             overflow: hidden;
         }
 
-        .device-marker {
-            width: 80px;
-            height: 80px;
-            text-align: center;
+        .zone-marker {
+            font-size: 40px;
             position: absolute;
+            margin-left: -20px;
+            margin-top: -20px;
         }
 
-        .device-marker img {}
+        .picture-marker {
+            position: absolute;
+            background-size: cover;
+            width: 50px;
+            height: 50px;
+            margin-left: -25px;
+            margin-top: -25px;
+            border-radius: 50%;
+            border: 1px solid #03a9f4;
+        }
 
-        .device-marker .mdi {
+        .name-marker {
+            position: absolute;
+            width: 50px;
+            height: 50px;
             font-size: 40px;
+            text-align: center;
+            margin-left: -25px;
+            margin-top: -25px;
+            border-radius: 50%;
+            background: white;
+            border: 1px solid #03a9f4;
         }
     </style>
-    <script type="text/javascript"
-        src="//api.map.baidu.com/api?type=webgl&v=1.0&ak=7Cc5Kmn672miPzG4qQhvlOrERcXMMinq"></script>
-    <script type="text/javascript"
-        src="//api.map.baidu.com/api?type=subway&v=1.0&ak=7Cc5Kmn672miPzG4qQhvlOrERcXMMinq"></script>
-    <link href="//mapopen.bj.bcebos.com/github/BMapGLLib/RichMarker/src/RichMarker.min.js" rel="stylesheet">
-    <script src="//mapopen.bj.bcebos.com/github/BMapGLLib/RichMarker/src/RichMarker.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="http://api.map.baidu.com/res/webgl/10/bmap.css" />
+    <link href="https://cdn.jsdelivr.net/npm/@mdi/font@6.2.95/css/materialdesignicons.min.css" media="all"
+        rel="stylesheet" type="text/css" />
+    <script>
+        var ha = {
+            initd: true,
+            ak: '',
+            get hass() {
+                return top.document.querySelector('home-assistant').hass
+            },
+            async init() {
+                let query = new URLSearchParams(location.search)
+                let ak = query.get('ak')
+                ha.ak = ak
+                window.BMapGL_loadScriptTime = (new Date).getTime();
+                await ha.loadScript("//api.map.baidu.com/getscript?type=webgl&v=1.0&services=&t=20211018154739&ak=" + ak)
+                await ha.loadScript("//api.map.baidu.com/api?type=subway&v=1.0&ak=" + ak)
+                await ha.loadScript("//mapopen.bj.bcebos.com/github/BMapGLLib/RichMarker/src/RichMarker.min.js")
+                ha.initMap()
+            },
+            // 触发事件
+            fire(type, data) {
+                const event = new Event(type, {
+                    bubbles: true,
+                    cancelable: false,
+                    composed: true
+                });
+                event.detail = data;
+                top.document.querySelector('home-assistant').dispatchEvent(event);
+            },
+            loadScript: function (src) {
+                return new Promise((resolve) => {
+                    let script = document.createElement('script')
+                    script.src = src
+                    script.onload = () => {
+                        resolve()
+                    }
+                    document.body.append(script)
+                })
+            },
+            async translate(arr) {
+                return new Promise((resolve) => {
+                    new BMapGL.Convertor().translate(arr, COORDINATES_WGS84, COORDINATES_BD09,
+                        function ({ points }) {
+                            resolve(points)
+                        })
+                })
+            },
+            async translateGPS({ lng, lat }) {
+                let x1 = lng
+                let y1 = lat
+                let baiduPoints = await ha.translate([new BMapGL.Point(lng, lat)])
+                let x2 = baiduPoints[0].lng
+                let y2 = baiduPoints[0].lat
+                let x = 2 * x1 - x2
+                let y = 2 * y1 - y2
+                return {
+                    lng: x,
+                    lat: y
+                }
+            },
+            initMap() {
+                var map = new BMapGL.Map('container');
+                window.map = map
+                map.enableScrollWheelZoom(true);     //开启鼠标滚轮缩放
+                var scaleCtrl = new BMapGL.ScaleControl();  // 添加比例尺控件
+                map.addControl(scaleCtrl);
+                var zoomCtrl = new BMapGL.ZoomControl();  // 添加比例尺控件
+                map.addControl(zoomCtrl);
 
-    <link href="https://unpkg.com/@mdi/font@6.4.95/css/materialdesignicons.min.css" media="all" rel="stylesheet"
-        type="text/css" />
+                /*
+                // 创建定位控件
+                var locationControl = new BMapGL.LocationControl({
+                    // 控件的停靠位置（可选，默认左上角）
+                    anchor: BMAP_ANCHOR_TOP_RIGHT,
+                    // 控件基于停靠位置的偏移量（可选）
+                    offset: new BMapGL.Size(20, 20)
+                });
+                // 将控件添加到地图上
+                map.addControl(locationControl);
+
+                // 添加定位事件
+                locationControl.addEventListener("locationSuccess", function (e) {
+                    var address = '';
+                    address += e.addressComponent.province;
+                    address += e.addressComponent.city;
+                    address += e.addressComponent.district;
+                    address += e.addressComponent.street;
+                    address += e.addressComponent.streetNumber;
+                    alert("当前定位地址为：" + address);
+                });
+                locationControl.addEventListener("locationError", function (e) {
+                    alert(e.message);
+                });
+                */
+
+                ha.readerMarker()
+                ha.contextMenu()
+            },
+            readerMarker() {
+                // 删除所有设备
+                let allOverlay = map.getOverlays();
+                for (let i = 0, j = allOverlay.length; i < j; i++) {
+                    map.removeOverlay(allOverlay[i]);
+                }
+                let states = ha.hass.states
+                // 百度地图
+                let gpsPoints = []
+                let entities = []
+                Object.keys(states).forEach(entity_id => {
+                    const { attributes, state } = states[entity_id]
+                    const domain = entity_id.split('.')[0]
+                    const { latitude, longitude, Latitude, Longitude, icon, radius, entity_picture, friendly_name } = attributes
+                    if ((latitude && longitude) || (Latitude && Longitude)) {
+                        let lng = longitude || Longitude
+                        let lat = latitude || Latitude
+                        let point = new BMapGL.Point(lng, lat)
+                        gpsPoints.push(point)
+                        entities.push({ entity_id, domain, icon, radius, entity_picture, friendly_name })
+                    }
+                })
+                // GPS坐标转换成百度坐标
+                this.translate(gpsPoints).then(baiduPoints => {
+                    entities.forEach(({ entity_id, domain, icon, radius, entity_picture, friendly_name }, index) => {
+                        const { lat, lng } = baiduPoints[index]
+                        let point = new BMapGL.Point(lng, lat)
+                        if (domain === 'zone') {
+                            ha.addIconMarker(point, {
+                                entityId: entity_id,
+                                icon,
+                                radius
+                            })
+                            // 初次渲染
+                            if (ha.initd) {
+                                ha.initd = false
+                                if (entity_id === 'zone.home') {
+                                    map.centerAndZoom(point, 15);
+                                }
+                            }
+                        } else {
+                            ha.addIconMarker(point, {
+                                entityId: entity_id, entity_picture, friendly_name
+                            })
+                        }
+                    })
+                })
+
+            },
+            addIconMarker(point, { entityId, icon, radius, entity_picture, friendly_name }) {
+                let html = ''
+                // 地点
+                if (radius) {
+                    // 绘制圆
+                    let circle = new BMapGL.Circle(point, radius, {
+                        fillColor: "#FF9800", strokeColor: 'orange', strokeWeight: 1, fillOpacity: 0.3, strokeOpacity: 0.5
+                    });
+                    map.addOverlay(circle);
+                    html = `<i class="zone-marker mdi ${icon.replace('mdi:', 'mdi-')}"></i>`
+                } else {
+                    if (entity_picture) {
+                        html = `<div class="picture-marker" style="background-image:url(${entity_picture});"></div>`
+                    } else {
+                        html = `<div class="name-marker">${friendly_name[0]}</div>`
+                    }
+                }
+                // 绘制图标
+                let myRichMarker1 = new BMapGLLib.RichMarker(html, point);
+                map.addOverlay(myRichMarker1);
+                myRichMarker1.addEventListener('click', function (e) {
+                    ha.fire('hass-more-info', { entityId })
+                })
+                myRichMarker1.addEventListener('dblclick', function (e) {
+                    let pos = e.currentTarget._position
+                    map.centerAndZoom(new BMapGL.Point(pos.lng, pos.lat), 15);
+                })
+            },
+            contextMenu() {
+                var menu = new BMapGL.ContextMenu();
+                var txtMenuItem = [{
+                    text: '编辑地点',
+                    callback: function () {
+                        top.history.replaceState(null, null, '/config/zone')
+                        ha.fire('location-changed', { replace: true })
+                    }
+                },
+                {
+                    text: '地铁线路图',
+                    callback: function (e) {
+                        var geoc = new BMapGL.Geocoder();
+                        geoc.getLocation(e, function (rs) {
+                            var addComp = rs.addressComponents;
+                            if (!addComp.city) {
+                                return alert(addComp.district + '没有地铁')
+                            }
+                            var city = addComp.city.replace('市', '')
+                            var subwaycity = BMapSub.SubwayCitiesList.find(ele => ele.name === city)
+                            if (subwaycity) {
+                                location.href = `metro.html?ak=${ha.ak}&city=${city}`
+                            } else {
+                                alert(addComp.city + '没有地铁')
+                            }
+                        })
+                    }
+                }, {
+                    text: '显示GPS坐标',
+                    callback: function (point) {
+                        ha.translateGPS(point).then(({ lat, lng }) => {
+                            console.log(`经纬度：${lng}，${lat}`)
+                            top.alert(`经纬度：${lng}，${lat}`)
+                        })
+                    }
+                }, {
+                    text: '设置我的家到这里',
+                    callback: function (point) {
+                        ha.translateGPS(point).then(({ lat, lng }) => {
+                            ha.hass.callService('homeassistant', 'set_location', {
+                                latitude: lat,
+                                longitude: lng
+                            })
+                            setTimeout(() => {
+                                ha.readerMarker()
+                            }, 1000)
+                        })
+                    }
+                }
+                ];
+                for (var i = 0; i < txtMenuItem.length; i++) {
+                    menu.addItem(new BMapGL.MenuItem(txtMenuItem[i].text, txtMenuItem[i].callback, 100));
+                }
+                map.addContextMenu(menu);
+            }
+        }
+    </script>
 </head>
 
 <body>
     <div id="container"></div>
     <script>
-        var map = new BMapGL.Map('container');
-        map.enableScrollWheelZoom(true);     //开启鼠标滚轮缩放
-        var scaleCtrl = new BMapGL.ScaleControl();  // 添加比例尺控件
-        map.addControl(scaleCtrl);
-        var zoomCtrl = new BMapGL.ZoomControl();  // 添加比例尺控件
-        map.addControl(zoomCtrl);
-
-        // 创建定位控件
-        var locationControl = new BMapGL.LocationControl({
-            // 控件的停靠位置（可选，默认左上角）
-            anchor: BMAP_ANCHOR_TOP_RIGHT,
-            // 控件基于停靠位置的偏移量（可选）
-            offset: new BMapGL.Size(20, 20)
-        });
-        // 将控件添加到地图上
-        map.addControl(locationControl);
-
-        // 添加定位事件
-        locationControl.addEventListener("locationSuccess", function (e) {
-            var address = '';
-            address += e.addressComponent.province;
-            address += e.addressComponent.city;
-            address += e.addressComponent.district;
-            address += e.addressComponent.street;
-            address += e.addressComponent.streetNumber;
-            alert("当前定位地址为：" + address);
-        });
-        locationControl.addEventListener("locationError", function (e) {
-            alert(e.message);
-        });
-        /* =========== 定位 ============ */
-        function addIconMarker(point, icon, key) {
-            var htm1 = `
-            <div class='device-marker'>
-                <i class="mdi ${icon.replace('mdi:', 'mdi-')}"></i>
-            </div>
-                `
-            var myRichMarker1 = new BMapGLLib.RichMarker(htm1, new BMapGL.Point(point.lng, point.lat));
-            map.addOverlay(myRichMarker1);
-            myRichMarker1.addEventListener('click', function (e) {
-                var pos = e.currentTarget._position
-                map.centerAndZoom(new BMapGL.Point(pos.lng, pos.lat), 15);
-            })
-        }
-
-        // 显示区域
-        function addZoneMarker() {
-            
-        }
-        // 绘制圆
-        var circle = new BMapGL.Circle(new BMapGL.Point(113.41776180241142, 30.3875269133129), 500, {
-            fillColor: "#FF9800", strokeColor: 'orange', strokeWeight: 1, fillOpacity: 0.3, strokeOpacity: 0.5
-        });
-        map.addOverlay(circle);
-        addIconMarker({
-            lat: 30.3875269133129,
-            lng: 113.41776180241142
-        }, 'mdi:home', 'zone.home')
-
-
-        addIconMarker({
-            lat: 31.3875269133129,
-            lng: 113.41776180241142
-        }, 'mdi:home', 'zone.home')
-
-        map.centerAndZoom(new BMapGL.Point(113.41776180241142, 30.3875269133129), 11);
-
-        /* =========== 右键菜单 ============ */
-        var menu = new BMapGL.ContextMenu();
-        var txtMenuItem = [{
-            text: '编辑地点',
-            callback: function () {
-
-            }
-        },
-        {
-            text: '地铁线路图',
-            callback: function (e) {
-                var geoc = new BMapGL.Geocoder();
-                geoc.getLocation(e, function (rs) {
-                    var addComp = rs.addressComponents;
-                    if (!addComp.city) {
-                        return alert(addComp.district + '没有地铁')
-                    }
-                    var city = addComp.city.replace('市', '')
-                    var subwaycity = BMapSub.SubwayCitiesList.find(ele => ele.name === city)
-                    if (subwaycity) {
-                        location.href = 'metro.html?city=' + city
-                    } else {
-                        alert(addComp.city + '没有地铁')
-                    }
-                })
-
-            }
-        }, {
-            text: '显示GPS坐标',
-            callback: function () {
-
-            }
-        }, {
-            text: '设置我的家到这里',
-            callback: function () {
-
-            }
-        }
-        ];
-        for (var i = 0; i < txtMenuItem.length; i++) {
-            menu.addItem(new BMapGL.MenuItem(txtMenuItem[i].text, txtMenuItem[i].callback, 100));
-        }
-        map.addContextMenu(menu);
+        ha.init()
     </script>
 </body>
 
