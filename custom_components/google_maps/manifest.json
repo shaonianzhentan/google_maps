@@ -1,0 +1,10 @@
+{
+    "domain": "google_maps",
+    "name": "\u767E\u5EA6\u5730\u56FE",
+    "version": "1.0",
+    "config_flow": true,
+    "documentation": "https://github.com/shaonianzhentan/google_maps",
+    "dependencies": ["frontend"],
+    "codeowners": ["@shaonianzhentan"],
+    "quality_scale": "internal"
+}
