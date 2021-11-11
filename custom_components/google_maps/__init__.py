@@ -13,10 +13,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                         "iframe",
                         "百度地图",
                         "mdi:google-maps",
-                        "/baidu_maps",
-                        { "url": "/baidu_maps_www/index.html?v=" + uuid.uuid1().hex },
+                        DOMAIN,
+                        { "url": "/baidu_maps_www/index.html?ak=7Cc5Kmn672miPzG4qQhvlOrERcXMMinq&v=" + uuid.uuid1().hex },
                         require_admin=False)
     return True
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    hass.components.frontend.async_remove_panel(DOMAIN)
     return True
