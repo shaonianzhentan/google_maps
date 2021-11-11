@@ -222,9 +222,11 @@
                 myRichMarker1.addEventListener('click', function (e) {
                     ha.fire('hass-more-info', { entityId })
                 })
-                myRichMarker1.addEventListener('dblclick', function (e) {
-                    let pos = e.currentTarget._position
-                    map.centerAndZoom(new BMapGL.Point(pos.lng, pos.lat), 15);
+                myRichMarker1.addEventListener('mouseup', function (e) {
+                    if (event.button == 2) {
+                        let pos = e.currentTarget._position
+                        map.centerAndZoom(new BMapGL.Point(pos.lng, pos.lat), 15);
+                    }
                 })
             },
             contextMenu() {
