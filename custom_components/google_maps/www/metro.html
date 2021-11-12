@@ -19,7 +19,7 @@
         var subwayCityName = query.get('city') || '北京';
 
         let script = document.createElement('script')
-        script.src = '//api.map.baidu.com/api?type=subway&v=1.0&ak=' + query.get('ak')
+        script.src = 'https://api.map.baidu.com/api?type=subway&v=1.0&ak=' + query.get('ak')
         script.onload = () => {
             
             var list = BMapSub.SubwayCitiesList;

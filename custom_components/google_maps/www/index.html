@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="cn">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -51,7 +50,7 @@
             border: 1px solid #03a9f4;
         }
     </style>
-    <link rel="stylesheet" type="text/css" href="http://api.map.baidu.com/res/webgl/10/bmap.css" />
+    <link rel="stylesheet" type="text/css" href="https://api.map.baidu.com/res/webgl/10/bmap.css" />
     <link href="https://cdn.jsdelivr.net/npm/@mdi/font@6.2.95/css/materialdesignicons.min.css" media="all"
         rel="stylesheet" type="text/css" />
     <script>
@@ -66,9 +65,9 @@
                 let ak = query.get('ak')
                 ha.ak = ak
                 window.BMapGL_loadScriptTime = (new Date).getTime();
-                await ha.loadScript("//api.map.baidu.com/getscript?type=webgl&v=1.0&services=&t=20211018154739&ak=" + ak)
-                await ha.loadScript("//api.map.baidu.com/api?type=subway&v=1.0&ak=" + ak)
-                await ha.loadScript("//mapopen.bj.bcebos.com/github/BMapGLLib/RichMarker/src/RichMarker.min.js")
+                await ha.loadScript("https://api.map.baidu.com/getscript?type=webgl&v=1.0&services=&t=20211018154739&ak=" + ak)
+                await ha.loadScript("https://api.map.baidu.com/api?type=subway&v=1.0&ak=" + ak)
+                await ha.loadScript("https://mapopen.bj.bcebos.com/github/BMapGLLib/RichMarker/src/RichMarker.min.js")
                 ha.initMap()
             },
             // 触发事件
