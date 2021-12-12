@@ -3,7 +3,10 @@
         "step": {
             "user": {
                 "title": "百度地图",
-                "description": "项目: https://github.com/shaonianzhentan/google_maps"
+                "description": "项目: https://github.com/shaonianzhentan/google_maps",
+                "data": {
+                    "ak": "百度地图浏览器ak密钥"
+                }
             }
         },
         "error": {},

@@ -8,6 +8,10 @@ from homeassistant.data_entry_flow import FlowResult
 
 from .const import DOMAIN
 
+DATA_SCHEMA = vol.Schema({
+    vol.Required("ak", default='7Cc5Kmn672miPzG4qQhvlOrERcXMMinq'): str
+})
+
 class SimpleConfigFlow(ConfigFlow, domain=DOMAIN):
 
     VERSION = 1
@@ -20,6 +24,6 @@ class SimpleConfigFlow(ConfigFlow, domain=DOMAIN):
             return self.async_abort(reason="single_instance_allowed")
 
         if user_input is None:
-            return self.async_show_form(step_id="user")
+            return self.async_show_form(step_id="user", data_schema=DATA_SCHEMA)
 
         return self.async_create_entry(title=DOMAIN, data=user_input)
