@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>轨迹视角</title>
+    <style type="text/css">
+        body,
+        html {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            font-family: "微软雅黑";
+        }
+
+        #container {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        ul li {
+            list-style: none;
+        }
+
+        .drawing-panel {
+            z-index: 999;
+            position: fixed;
+            bottom: 3rem;
+            margin-left: 1rem;
+            padding: 1rem 1rem;
+            border-radius: .25rem;
+            background-color: #fff;
+            box-shadow: 0 2px 6px 0 rgba(27, 142, 236, 0.5);
+        }
+
+        .drawing-panel li {
+            float: left;
+        }
+
+        .drawing-panel select {
+            padding: 6px;
+        }
+
+        .btn {
+            width: 90px;
+            height: 30px;
+            float: left;
+            background-color: #fff;
+            color: rgba(27, 142, 236, 1);
+            font-size: 14px;
+            border: 1px solid rgba(27, 142, 236, 1);
+            border-radius: 5px;
+            margin: 0 5px;
+            text-align: center;
+            line-height: 30px;
+            cursor: pointer;
+        }
+
+        .btn:hover {
+            background-color: rgba(27, 142, 236, 0.8);
+            color: #fff;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="container"></div>
+    <ul class="drawing-panel" style="z-index: 99;">
+        <li>
+            <select id="device"></select>
+        </li>
+        <li class="btn" id="btnStart" onclick="startAni()">点击控制</li>
+    </ul>
+    <script>
+        var ha = {
+            initd: true,
+            ak: '',
+            trackAni: null,
+            get hass() {
+                return parent.document.querySelector('home-assistant').hass
+            },
+            async init() {
+                let query = new URLSearchParams(location.search)
+                let ak = query.get('ak')
+                let lng = query.get('lng')
+                let lat = query.get('lat')
+                ha.ak = ak
+                window.BMapGL_loadScriptTime = (new Date).getTime();
+                await ha.loadScript("https://api.map.baidu.com/getscript?type=webgl&v=1.0&services=&t=20211018154739&ak=" + ak)
+                await ha.loadScript("https://mapopen.bj.bcebos.com/github/BMapGLLib/TrackAnimation/src/TrackAnimation.min.js")
+
+                var map = new BMapGL.Map('container');
+                window.map = map
+                map.enableScrollWheelZoom(true);     //开启鼠标滚轮缩放
+                var scaleCtrl = new BMapGL.ScaleControl();  // 添加比例尺控件
+                map.addControl(scaleCtrl);
+                var zoomCtrl = new BMapGL.ZoomControl();  // 添加比例尺控件
+                map.addControl(zoomCtrl);
+
+                map.centerAndZoom(new BMapGL.Point(lng, lat), 17);
+            },
+            // 触发事件
+            fire(type, data) {
+                const event = new Event(type, {
+                    bubbles: true,
+                    cancelable: false,
+                    composed: true
+                });
+                event.detail = data;
+                top.document.querySelector('home-assistant').dispatchEvent(event);
+            },
+            loadScript: function (src) {
+                return new Promise((resolve) => {
+                    let script = document.createElement('script')
+                    script.src = src
+                    script.onload = () => {
+                        resolve()
+                    }
+                    document.body.append(script)
+                })
+            },
+            async translate(arr) {
+                return new Promise((resolve) => {
+                    new BMapGL.Convertor().translate(arr, COORDINATES_WGS84, COORDINATES_BD09,
+                        function ({ points }) {
+                            resolve(points)
+                        })
+                })
+            },
+            async startTrack(point) {
+                const points = await ha.translate(point)
+                map.centerAndZoom(points[0], 17);
+                var pl = new BMapGL.Polyline(points);
+                ha.trackAni = new BMapGLLib.TrackAnimation(map, pl, {
+                    overallView: true,
+                    tilt: 30,
+                    duration: 20000,
+                    delay: 300
+                });
+                ha.trackAni.start()
+            }
+        }
+        ha.init()
+
+        function startAni() {
+            if (ha.trackAni) {
+                switch (ha.trackAni._status) {
+                    case 1:
+                        ha.trackAni.pause()
+                        break;
+                    case 2: // 完成
+                        ha.trackAni.start()
+                        break;
+                    case 3: // 暂停
+                        ha.trackAni.continue()
+                        break;
+                }
+            } else {
+                console.log(select.value)
+                getPoints(select.value).then((point) => {
+                    if (point.length < 2) return top.alert("必须得有两个定位点才能使用")
+                    ha.startTrack(point)
+                })
+            }
+        }
+
+        function getPoints(entity_id) {
+            return new Promise((resolve) => {
+                var today = new Date()
+                var end_time = today.toISOString()
+                today.setDate(today.getDate() - 1)
+                var start_time = today.toISOString()
+                ha.hass
+                    .fetchWithAuth(`/api/history/period/${start_time}?filter_entity_id=${entity_id}&end_time=${end_time}`)
+                    .then(res => res.json()).then(res => {
+                        const list = res[0].filter(ele => ele.state !== 'unknown'
+                            && ele.attributes && ele.attributes.latitude && ele.attributes.longitude)
+                        const points = list.map(({ attributes: { latitude, longitude } }) => {
+                            return {
+                                lat: latitude,
+                                lng: longitude
+                            }
+                        })
+                        resolve(points)
+                    })
+            })
+        }
+
+        function getDevice() {
+            const states = ha.hass.states
+            const entities = Object.keys(states).filter(ele => ['person', 'device_tracker'].includes(ele.split('.')[0]))
+            return entities.map(entity_id => {
+                return {
+                    id: entity_id,
+                    name: states[entity_id].attributes.friendly_name
+                }
+            })
+        }
+
+        const select = document.querySelector('#device')
+        const btnStart = document.querySelector('#btnStart')
+        select.addEventListener('change', function () {
+            ha.trackAni?.cancel()
+            ha.trackAni = null
+        })
+
+        getDevice().forEach(({ id, name }) => {
+            const option = document.createElement('option')
+            option.text = name
+            option.value = id
+            select.appendChild(option)
+        })
+    </script>
+</body>
+
+</html>

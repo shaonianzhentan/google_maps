@@ -9,7 +9,7 @@ from homeassistant.data_entry_flow import FlowResult
 from .const import DOMAIN
 
 DATA_SCHEMA = vol.Schema({
-    vol.Required("ak", default='7Cc5Kmn672miPzG4qQhvlOrERcXMMinq'): str
+    vol.Required("ak"): str
 })
 
 class SimpleConfigFlow(ConfigFlow, domain=DOMAIN):

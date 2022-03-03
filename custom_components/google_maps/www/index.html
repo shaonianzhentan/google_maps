@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="cn">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -58,7 +59,7 @@
             initd: true,
             ak: '',
             get hass() {
-                return top.document.querySelector('home-assistant').hass
+                return parent.document.querySelector('home-assistant').hass
             },
             async init() {
                 let query = new URLSearchParams(location.search)
@@ -186,7 +187,7 @@
                             if (ha.initd) {
                                 ha.initd = false
                                 if (entity_id === 'zone.home') {
-                                    map.centerAndZoom(point, 15);
+                                    map.centerAndZoom(point, 12);
                                 }
                             }
                         } else {
@@ -255,7 +256,14 @@
                             }
                         })
                     }
-                }, {
+                },
+                {
+                    text: '显示运动轨迹',
+                    callback: function (point) {
+                        location.href = `track.html?ak=${ha.ak}&lng=${point.lng}&lat=${point.lat}`
+                    }
+                },
+                {
                     text: '显示GPS坐标',
                     callback: function (point) {
                         ha.translateGPS(point).then(({ lat, lng }) => {
@@ -263,7 +271,8 @@
                             top.alert(`经纬度：${lng}，${lat}`)
                         })
                     }
-                }, {
+                },
+                {
                     text: '设置我的家到这里',
                     callback: function (point) {
                         ha.translateGPS(point).then(({ lat, lng }) => {
