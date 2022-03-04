@@ -52,8 +52,32 @@
         }
     </style>
     <link rel="stylesheet" type="text/css" href="https://api.map.baidu.com/res/webgl/10/bmap.css" />
-    <link href="https://cdn.jsdelivr.net/npm/@mdi/font@6.2.95/css/materialdesignicons.min.css" media="all"
-        rel="stylesheet" type="text/css" />
+    <link href="https://cdn.bootcdn.net/ajax/libs/MaterialDesign-Webfont/6.5.95/css/materialdesignicons.min.css" rel="stylesheet">
+    <script>
+        function longPress(func, timeout = 500) {
+            var timeOutEvent;
+            document.body.addEventListener('touchstart', function (e) {
+                // 开启定时器前先清除定时器，防止重复触发
+                clearTimeout(timeOutEvent);
+                // 开启延时定时器
+                timeOutEvent = setTimeout(function () {
+                    // 调用长按之后的逻辑函数func
+                    func(e);
+                }, timeout);
+            });
+
+            document.body.addEventListener('touchmove', function (e) {
+                // 长按过程中，手指是不能移动的，若移动则清除定时器，中断长按逻辑
+                clearTimeout(timeOutEvent);
+                /* e.preventDefault() --> 若阻止默认事件，则在长按元素上滑动时，页面是不滚动的，按需求设置吧 */
+            });
+
+            document.body.addEventListener('touchend', function (e) {
+                // 若手指离开屏幕时，时间小于我们设置的长按时间，则为点击事件，清除定时器，结束长按逻辑
+                clearTimeout(timeOutEvent);
+            });
+        }
+    </script>
     <script>
         var ha = {
             initd: true,
@@ -291,6 +315,22 @@
                     menu.addItem(new BMapGL.MenuItem(txtMenuItem[i].text, txtMenuItem[i].callback, 100));
                 }
                 map.addContextMenu(menu);
+
+                // 移动端长按事件
+                if ("ontouchstart" in window) {
+                    let isLongPress = false
+                    map.addEventListener('click', function (e) {
+                        if(isLongPress){
+                            menu.curPixel = e.pixel
+                            menu.curPoint = e.point
+                            menu.show();
+                            isLongPress = false
+                        }
+                    });
+                    longPress((e) => {
+                        isLongPress = true
+                    })
+                }
             }
         }
     </script>
