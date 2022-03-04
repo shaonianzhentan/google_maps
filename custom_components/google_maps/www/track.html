@@ -122,15 +122,33 @@
                 })
             },
             async translate(arr) {
-                return new Promise((resolve) => {
+                return new Promise((resolve, reject) => {
                     new BMapGL.Convertor().translate(arr, COORDINATES_WGS84, COORDINATES_BD09,
-                        function ({ points }) {
-                            resolve(points)
+                        function (res) {
+                            console.log(res)
+                            if (res.points) {
+                                resolve(res.points)
+                            } else {
+                                reject(new Error('转换坐标失败'))
+                            }
                         })
                 })
             },
+            async translateGPS(points) {
+                const { lng, lat } = points[0]
+                let baiduPoints = await ha.translate([new BMapGL.Point(lng, lat)])
+                let x = baiduPoints[0].lng
+                let y = baiduPoints[0].lat
+                // 计算偏移量
+                const offsetX = x - lng
+                const offsetY = y - lat
+                console.log(offsetX, offsetY)
+                console.log(lng, lat, x, y)
+                return points.map(ele => new BMapGL.Point(ele.lng + offsetX, ele.lat + offsetY))
+            },
             async startTrack(point) {
-                const points = await ha.translate(point)
+                const points = await ha.translateGPS(point)
+                console.log(points)
                 map.centerAndZoom(points[0], 17);
                 var pl = new BMapGL.Polyline(points);
                 ha.trackAni = new BMapGLLib.TrackAnimation(map, pl, {
