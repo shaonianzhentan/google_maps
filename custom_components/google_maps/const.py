@@ -1,2 +1,2 @@
 DOMAIN = "google_maps"
-VERSION = "1.1"
+VERSION = "1.2"
