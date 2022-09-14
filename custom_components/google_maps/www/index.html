@@ -144,6 +144,7 @@
                 map.addControl(scaleCtrl);
                 var zoomCtrl = new BMapGL.ZoomControl();  // 添加比例尺控件
                 map.addControl(zoomCtrl);
+                console.log('添加地图控件')
 
                 /*
                 // 创建定位控件
@@ -207,12 +208,10 @@
                                 icon,
                                 radius
                             })
-                            // 初次渲染
-                            if (ha.initd) {
+                            if (entity_id === 'zone.home' && ha.initd) {
+                                console.log('初始化中心点')
                                 ha.initd = false
-                                if (entity_id === 'zone.home') {
-                                    map.centerAndZoom(point, 12);
-                                }
+                                map.centerAndZoom(point, 12);
                             }
                         } else {
                             ha.addIconMarker(point, {

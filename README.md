@@ -3,11 +3,7 @@
 
 [![hacs_badge](https://img.shields.io/badge/Home-Assistant-%23049cdb)](https://www.home-assistant.io/)
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration)
-
 ![visit](https://visitor-badge.laobi.icu/badge?page_id=shaonianzhentan.google_maps&left_text=visit)
-![forks](https://img.shields.io/github/forks/shaonianzhentan/google_maps)
-![stars](https://img.shields.io/github/stars/shaonianzhentan/google_maps)
-
 ## 安装方式
 
 安装完成重启HA，刷新一下页面，在集成里搜索`百度地图`即可
