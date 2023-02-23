@@ -13,6 +13,10 @@ customElements.whenDefined("hui-view").then(() => {
             this.updated()
         }
 
+        get hass() {
+            return this._hass
+        }
+
         set hass(hass) {
             this._hass = hass
             if (this.isCreated) {
@@ -25,9 +29,9 @@ customElements.whenDefined("hui-view").then(() => {
         updated() {
             const { hass, config } = this
             let { entity_id, zoom, ak } = config
-            if (entity_id && zoom && ak) {
+            if (entity_id && ak) {
 
-                if (zoom < 4 || zoom > 19) zoom = 15
+                if (!zoom || zoom < 4 || zoom > 19) zoom = 15
 
                 entity = hass.states[entity_id]
                 let attributes = entity['attributes']
