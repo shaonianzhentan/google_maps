@@ -16,6 +16,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                         DOMAIN,
                         { "url": f"/baidu_maps_www/index.html?ak={ak}&v={VERSION}" },
                         require_admin=False)
+
+    hass.components.frontend.add_extra_js_url(hass, f'/baidu_maps_www/map.js?v={VERSION}')
     return True
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
