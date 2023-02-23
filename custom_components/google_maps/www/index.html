@@ -69,7 +69,7 @@
             document.body.addEventListener('touchmove', function (e) {
                 // 长按过程中，手指是不能移动的，若移动则清除定时器，中断长按逻辑
                 clearTimeout(timeOutEvent);
-                /* e.preventDefault() --> 若阻止默认事件，则在长按元素上滑动时，页面是不滚动的，按需求设置吧 */
+                /* e.preventDefault() --> 若阻止默认事件，则在长按元素上滑动时，页面是不滚动的，按需求设置吧 * /
             });
 
             document.body.addEventListener('touchend', function (e) {
@@ -118,6 +118,14 @@
             async translate(arr) {
                 return new Promise((resolve) => {
                     new BMapGL.Convertor().translate(arr, COORDINATES_WGS84, COORDINATES_BD09,
+                        function ({ points }) {
+                            resolve(points)
+                        })
+                })
+            },
+            async gaode2baidu(arr) {
+                return new Promise((resolve) => {
+                    new BMapGL.Convertor().translate(arr, COORDINATES_GCJ02, COORDINATES_BD09,
                         function ({ points }) {
                             resolve(points)
                         })
@@ -182,45 +190,54 @@
                     map.removeOverlay(allOverlay[i]);
                 }
                 let states = ha.hass.states
-                // 百度地图
-                let gpsPoints = []
+
+                let gpsPoints = [] // GPS
+                let gaodePoints = [] // 高德
                 let entities = []
                 Object.keys(states).forEach(entity_id => {
                     const { attributes, state } = states[entity_id]
                     const domain = entity_id.split('.')[0]
-                    const { latitude, longitude, Latitude, Longitude, icon, radius, entity_picture, friendly_name } = attributes
+                    const { latitude, longitude, Latitude, Longitude, icon, radius, entity_picture, friendly_name, map } = attributes
                     if ((latitude && longitude) || (Latitude && Longitude)) {
                         let lng = longitude || Longitude
                         let lat = latitude || Latitude
                         let point = new BMapGL.Point(lng, lat)
-                        gpsPoints.push(point)
+                        if (map === 'gaode') {
+                            gaodePoints.push(point)
+                        } else {
+                            gpsPoints.push(point)
+                        }
                         entities.push({ entity_id, domain, icon, radius, entity_picture, friendly_name })
                     }
                 })
                 // GPS坐标转换成百度坐标
-                this.translate(gpsPoints).then(baiduPoints => {
-                    entities.forEach(({ entity_id, domain, icon, radius, entity_picture, friendly_name }, index) => {
-                        const { lat, lng } = baiduPoints[index]
-                        let point = new BMapGL.Point(lng, lat)
-                        if (domain === 'zone') {
-                            ha.addIconMarker(point, {
-                                entityId: entity_id,
-                                icon,
-                                radius
-                            })
-                            if (entity_id === 'zone.home' && ha.initd) {
-                                console.log('初始化中心点')
-                                ha.initd = false
-                                map.centerAndZoom(point, 12);
+                Promise.all([
+                    this.translate(gpsPoints),
+                    this.gaode2baidu(gaodePoints)
+                ])
+                    .then(result => {
+                        const baiduPoints = result.flat()
+                        entities.forEach(({ entity_id, domain, icon, radius, entity_picture, friendly_name }, index) => {
+                            const { lat, lng } = baiduPoints[index]
+                            let point = new BMapGL.Point(lng, lat)
+                            if (domain === 'zone') {
+                                ha.addIconMarker(point, {
+                                    entityId: entity_id,
+                                    icon,
+                                    radius
+                                })
+                                if (entity_id === 'zone.home' && ha.initd) {
+                                    console.log('初始化中心点')
+                                    ha.initd = false
+                                    map.centerAndZoom(point, 12);
+                                }
+                            } else {
+                                ha.addIconMarker(point, {
+                                    entityId: entity_id, entity_picture, friendly_name
+                                })
                             }
-                        } else {
-                            ha.addIconMarker(point, {
-                                entityId: entity_id, entity_picture, friendly_name
-                            })
-                        }
+                        })
                     })
-                })
-
             },
             addIconMarker(point, { entityId, icon, radius, entity_picture, friendly_name }) {
                 let html = ''
@@ -319,7 +336,7 @@
                 if ("ontouchstart" in window) {
                     let isLongPress = false
                     map.addEventListener('click', function (e) {
-                        if(isLongPress){
+                        if (isLongPress) {
                             menu.curPixel = e.pixel
                             menu.curPoint = e.point
                             menu.show();
