@@ -57,31 +57,31 @@ customElements.whenDefined("hui-view").then(() => {
                     longitude = point.lon
                     latitude = point.lat
                     const address = `${longitude},${latitude}`
-                    const width = this.$('ha-card').offsetWidth * 2
-                    const link = `http://api.map.baidu.com/staticimage/v2?ak=${ak}&zoom=${this.zoom}&width=${width}&height=${width}&center=${address}&markers=${address}`
-                    const img = this.$('#img')
-                    if (link != img.src) img.src = link
+
+                    const card = this.$('ha-card')
+                    card.style.height = card.offsetWidth + 'px'
+
+                    const link = `url("http://api.map.baidu.com/staticimage/v2?ak=${ak}&zoom=${this.zoom}&width=1000&height=1000&center=${address}&markers=${address}")`
+                    if (link != card.backgroundImage) card.backgroundImage = link
                 }
             }
         }
 
         created(hass) {
             const shadow = this.attachShadow({ mode: 'open' });
-            const card = document.createElement('ha-card');
-            card.innerHTML = `
-            <img id="img" style="width: 100%;display:block;" alt="加载失败了，请重试" />
+            const map = document.createElement('ha-card');
+            map.innerHTML = `
             <div id="group">
                 <button id="plus">+</button>
                 <button id="subtract">-</button>
             </div>
             `
-            shadow.appendChild(card)
+            shadow.appendChild(map)
             // 创建样式
             const style = document.createElement('style')
             style.textContent = `
             ha-card{
-                overflow: hidden;
-                min-height: 100px;
+                background-repeat: no-repeat;
             }
             #group{
                 position: absolute;
@@ -122,6 +122,55 @@ customElements.whenDefined("hui-view").then(() => {
                 if (zoom < 5) zoom = 5
                 this.zoom = zoom
                 this.updated()
+            }
+
+            // 移动画布
+            let mouse = null
+            let mapWidth = card.offsetWidth
+
+            let backgroundPositionX = (mapWidth - 1000) / 2
+            let backgroundPositionY = (mapWidth - 1000) / 2
+            // map.style.width = mapWidth + 'px'
+            map.style.height = mapWidth + 'px'
+            map.style.backgroundPositionX = backgroundPositionX + 'px'
+            map.style.backgroundPositionY = backgroundPositionY + 'px'
+
+            map.ontouchstart = function () {
+                const event = arguments[arguments.length - 1]
+                const { pageX, pageY } = event.changedTouches[0]
+
+                mouse = { x: pageX, y: pageY }
+            }
+            map.ontouchend = function () {
+                const event = arguments[arguments.length - 1]
+                const { pageX, pageY } = event.changedTouches[0]
+                up(pageX, pageY)
+            }
+
+            map.onmousedown = function () {
+                const event = arguments[arguments.length - 1]
+                mouse = { x: event.offsetX, y: event.offsetY }
+            }
+            map.onmouseup = function () {
+                const event = arguments[arguments.length - 1]
+                const { offsetX, offsetY } = event
+                up(offsetX, offsetY)
+            }
+
+            function up(offsetX, offsetY) {
+                if (mouse != null) {
+                    const { x, y } = mouse
+                    const pos = {
+                        x: parseInt(offsetX - x),
+                        y: parseInt(offsetY - y)
+                    }
+                    backgroundPositionX += pos.x
+                    backgroundPositionY += pos.y
+                    map.style.backgroundPositionX = backgroundPositionX + 'px'
+                    map.style.backgroundPositionY = backgroundPositionY + 'px'
+
+                    mouse = null
+                }
             }
         }
 
