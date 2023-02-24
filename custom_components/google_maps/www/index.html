@@ -69,7 +69,6 @@
             document.body.addEventListener('touchmove', function (e) {
                 // 长按过程中，手指是不能移动的，若移动则清除定时器，中断长按逻辑
                 clearTimeout(timeOutEvent);
-                /* e.preventDefault() --> 若阻止默认事件，则在长按元素上滑动时，页面是不滚动的，按需求设置吧 * /
             });
 
             document.body.addEventListener('touchend', function (e) {
