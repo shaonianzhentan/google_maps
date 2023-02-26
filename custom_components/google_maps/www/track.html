@@ -170,7 +170,7 @@
                 const offsetY = y - lat
                 console.log(offsetX, offsetY)
                 console.log(lng, lat, x, y)
-                return points.map(ele => new BMapGL.Point(ele.lng + offsetX, ele.lat + offsetY))
+                return points.map(ele => new BMapGL.Point(parseFloat(ele.lng) + offsetX, parseFloat(ele.lat) + offsetY))
             },
 
             async startTrack(point) {
@@ -250,12 +250,13 @@
             const { attributes, state } = ha.hass.states[select.value]
             let lng = attributes.longitude
             let lat = attributes.latitude
+            let points = null
             if(attributes.map === 'gaode'){
                 // 高德
-                baiduPoints = await ha.gaode2baidu([new BMapGL.Point(lng, lat)])                    
+                points = await ha.gaode2baidu([new BMapGL.Point(lng, lat)])                    
             }else{
                 // GPS
-                baiduPoints = await ha.gps2baidu([new BMapGL.Point(lng, lat)])
+                points = await ha.gps2baidu([new BMapGL.Point(lng, lat)])
             }
             map.centerAndZoom(points[0], 17);
         })
