@@ -128,7 +128,7 @@
                     document.body.append(script)
                 })
             },
-            async translate(arr) {
+            async gps2baidu(arr) {
                 return new Promise((resolve, reject) => {
                     new BMapGL.Convertor().translate(arr, COORDINATES_WGS84, COORDINATES_BD09,
                         function (res) {
@@ -141,9 +141,28 @@
                         })
                 })
             },
+            async gaode2baidu(arr) {
+                return new Promise((resolve) => {
+                    new BMapGL.Convertor().translate(arr, COORDINATES_GCJ02, COORDINATES_BD09,
+                        function ({ points }) {
+                            resolve(points)
+                        })
+                })
+            },
             async translateGPS(points) {
                 const { lng, lat } = points[0]
-                let baiduPoints = await ha.translate([new BMapGL.Point(lng, lat)])
+                let baiduPoints = null
+                const entity_id = document.querySelector('#device').value
+                
+                const { attributes, state } = ha.hass.states[entity_id]
+                if(attributes.map === 'gaode'){
+                    // 高德
+                    baiduPoints = await ha.gaode2baidu([new BMapGL.Point(lng, lat)])                    
+                }else{
+                    // GPS
+                    baiduPoints = await ha.gps2baidu([new BMapGL.Point(lng, lat)])
+                }
+
                 let x = baiduPoints[0].lng
                 let y = baiduPoints[0].lat
                 // 计算偏移量
@@ -153,6 +172,7 @@
                 console.log(lng, lat, x, y)
                 return points.map(ele => new BMapGL.Point(ele.lng + offsetX, ele.lat + offsetY))
             },
+
             async startTrack(point) {
                 ha.trackAni?.cancel()
                 const points = await ha.translateGPS(point)
@@ -224,8 +244,20 @@
 
         const select = document.querySelector('#device')
         const btnStart = document.querySelector('#btnStart')
-        select.addEventListener('change', function () {
+        select.addEventListener('change', async () => {
             ha.trackAni?.cancel()
+            
+            const { attributes, state } = ha.hass.states[select.value]
+            let lng = attributes.longitude
+            let lat = attributes.latitude
+            if(attributes.map === 'gaode'){
+                // 高德
+                baiduPoints = await ha.gaode2baidu([new BMapGL.Point(lng, lat)])                    
+            }else{
+                // GPS
+                baiduPoints = await ha.gps2baidu([new BMapGL.Point(lng, lat)])
+            }
+            map.centerAndZoom(points[0], 17);
         })
 
         getDevice().forEach(({ id, name }) => {
