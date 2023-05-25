@@ -2,7 +2,9 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 import homeassistant.helpers.config_validation as cv
 
-from .const import DOMAIN, VERSION
+from .manifest import manifest
+DOMAIN = manifest.domain
+VERSION = manifest.version
 
 CONFIG_SCHEMA = cv.deprecated(DOMAIN)
 

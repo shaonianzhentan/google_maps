@@ -1,7 +1,7 @@
 {
     "domain": "google_maps",
     "name": "\u767E\u5EA6\u5730\u56FE",
-    "version": "2023.2.26",
+    "version": "2023.5.25",
     "config_flow": true,
     "documentation": "https://github.com/shaonianzhentan/google_maps",
     "dependencies": ["frontend"],
