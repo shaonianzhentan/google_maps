@@ -3,7 +3,7 @@ customElements.whenDefined("hui-view").then(() => {
     customElements.define('baidu-staticimage', class extends HTMLElement {
 
         config = {}
-        zoom = 16
+        zoom = 15
         loading = false
 
         static getStubConfig() {
@@ -19,8 +19,8 @@ customElements.whenDefined("hui-view").then(() => {
             }
 
             if (config.zoom) {
-                if (isNaN(config.zoom) || config.zoom < 5 || config.zoom > 19) {
-                    throw new Error('缩放值必须在5到19之间');
+                if (isNaN(config.zoom) || config.zoom < 3 || config.zoom > 18) {
+                    throw new Error('缩放值必须在3到18之间');
                 }
                 this.zoom = config.zoom
             }
@@ -62,7 +62,7 @@ customElements.whenDefined("hui-view").then(() => {
             let { entity_id, ak } = config
             if (hass && entity_id && ak) {
                 const entity = hass.states[entity_id]
-                if(!entity){                    
+                if (!entity) {
                     throw new Error('你需要定义一个实体');
                 }
                 let attributes = entity['attributes']
@@ -153,14 +153,14 @@ customElements.whenDefined("hui-view").then(() => {
             this.$('#plus').onclick = () => {
                 let { zoom } = this
                 zoom += 1
-                if (zoom > 19) zoom = 19
+                if (zoom > 18) zoom = 18
                 this.zoom = zoom
                 this.updated()
             }
             this.$('#subtract').onclick = () => {
                 let { zoom } = this
                 zoom -= 1
-                if (zoom < 5) zoom = 5
+                if (zoom < 3) zoom = 3
                 this.zoom = zoom
                 this.updated()
             }
