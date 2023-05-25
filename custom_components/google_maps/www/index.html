@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="cn">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -1481,6 +1480,11 @@
 
                 ha.readerMarker()
                 ha.contextMenu()
+
+                // 根据主题更换颜色
+                if (ha.hass.selectedTheme.dark) {
+                    map.setMapStyleV2({ styleJson });
+                }
             },
             readerMarker() {
                 // 删除所有设备
@@ -1529,10 +1533,6 @@
                                     console.log('初始化中心点')
                                     ha.initd = false
                                     map.centerAndZoom(point, 12);
-                                    // 根据主题更换颜色
-                                    if (ha.hass.selectedTheme.dark) {
-                                        map.setMapStyleV2({ styleJson });
-                                    }
                                 }
                             } else {
                                 ha.addIconMarker(point, {
