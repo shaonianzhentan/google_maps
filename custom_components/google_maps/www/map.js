@@ -6,9 +6,10 @@ customElements.whenDefined('ha-panel-lovelace').then(() => {
   customElements.define('baidu-map', class extends LitElement {
 
     static properties = {
-      ak: {},
       hass: {},
-      config: {}
+      stateObj: {},
+      config: {},
+      ak: {},
     };
 
 
@@ -36,11 +37,24 @@ customElements.whenDefined('ha-panel-lovelace').then(() => {
     render() {
       if (this.ak) {
         const version = new Date().toLocaleDateString()
-        let { entity_id, zoom } = this.config
-        const click = 1
-        return html`<iframe style="height: ${this.offsetWidth}px;" 
+        let click = 1
+        let zoom = 15
+        let entity_id = null
+        let height = this.offsetWidth == 0 ? this.parentElement.offsetWidth : this.offsetWidth
+
+        const { config, stateObj } = this
+        if (stateObj) {
+          entity_id = stateObj.entity_id
+          height = 300
+          click = 0
+        } else {
+          zoom = config.zoom
+          entity_id = config.entity_id
+        }
+        
+        return html`<iframe style="height: ${height}px;" 
           src="/baidu_maps_www/card.html?ak=${this.ak}&v=${version}#id=${entity_id}&zoom=${zoom}&click=${click}"
-          ></iframe>`
+          ></iframe>${stateObj ? html`<ha-attributes .hass=${this.hass} .stateObj=${stateObj}></ha-attributes>` : ''}`
       } else {
         if (!this.loading) {
           this.loading = true
@@ -49,7 +63,7 @@ customElements.whenDefined('ha-panel-lovelace').then(() => {
             this.ak = ak
           })
         }
-        return html`加载中`
+        return html`百度地图卡片加载中...`
       }
     }
   })
@@ -58,7 +72,7 @@ customElements.whenDefined('ha-panel-lovelace').then(() => {
   window.customCards.push({
     type: "baidu-map",
     name: "百度地图",
-    preview: false,
+    preview: true,
     description: "百度地图卡片"
   });
 

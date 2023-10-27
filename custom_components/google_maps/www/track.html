@@ -66,12 +66,15 @@
     const btnStart = document.querySelector('#btnStart')
     select.addEventListener('change', async () => {
       ha.trackAni?.cancel()
-
-      const { attributes, state } = ha.hass.states[select.value]
-      const { longitude, latitude, map } = attributes
+      const entityId = select.value
+      const state = ha.hass.states[entityId]
+      const { longitude, latitude, map, entity_picture, friendly_name } = state.attributes
 
       let [lng, lat] = ha.transform([longitude, latitude], map === 'gaode' ? gcoord.GCJ02 : gcoord.WGS84, gcoord.BD09)
-      ha.centerAndZoom(lng, lat, 17);
+      ha.readerMarker(({ hass }) => {
+        ha.addIconMarker(lng, lat, { entityId, entity_picture, friendly_name })
+        ha.centerAndZoom(lng, lat, 17);
+      })
     })
 
     ha.loadMap().then(async ({ hass }) => {
@@ -106,7 +109,7 @@
       let endTime = document.querySelector('#txtEndTime').value
       console.log(startTime, endTime)
       if (!startTime || !endTime) {
-        return top.alert("请选择要查看的开始和结束时间")
+        return parent.alert("请选择要查看的开始和结束时间")
       }
       // 获取坐标点
       if (loading) {
@@ -115,7 +118,7 @@
       loading = true
       getPoints(select.value, new Date(startTime).toISOString(), new Date(endTime).toISOString()).then((arr) => {
         loading = false
-        if (arr.length < 2) return top.alert("必须得有两个定位点才能使用")
+        if (arr.length < 2) return parent.alert("必须得有两个定位点才能使用")
         ha.startTrack(arr)
       })
     }

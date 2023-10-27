@@ -9,6 +9,7 @@
   <link href="./font/css/materialdesignicons.min.css" rel="stylesheet">
   <link href="./css/index.css" rel="stylesheet">
 </head>
+
 <body>
   <script src="./js/gcoord.js"></script>
   <script src="./js/lib.js"></script>
@@ -22,10 +23,12 @@
           try {
             const { icon, radius, entity_picture, friendly_name, map } = state.attributes
             // 坐标转换
-            let arr = ha.transform([longitude, latitude], map === 'gaode' ? gcoord.GCJ02 : gcoord.WGS84, gcoord.BD09)
-            let lng = arr[0]
-            let lat = arr[1]
-            ha.addIconMarker(lng, lat, { entityId, entity_picture, friendly_name }, isClick)
+            const [lng, lat] = ha.transform([longitude, latitude], map === 'gaode' ? gcoord.GCJ02 : gcoord.WGS84, gcoord.BD09)
+            if (entityId.startsWith('zone.')) {
+              ha.addIconMarker(lng, lat, { entityId, icon, radius })
+            } else {
+              ha.addIconMarker(lng, lat, { entityId, entity_picture, friendly_name }, isClick)
+            }
             ha.centerAndZoom(lng, lat, zoom);
           } catch (ex) {
             console.error(ex)

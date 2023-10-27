@@ -9,8 +9,8 @@ class HomeAssistant {
     this.ak = query.get('ak')
     this.lng = query.get('lng')
     this.lat = query.get('lat')
-    // if (!this.hass) top.alert("请在HomeAssistant中使用");
-    // if (!this.ak) top.alert("请配置百度地图浏览器AK密钥");
+    // if (!this.hass) parent.alert("请在HomeAssistant中使用");
+    // if (!this.ak) parent.alert("请配置百度地图浏览器AK密钥");
 
     const div = document.createElement('div')
     div.id = 'container'
@@ -107,7 +107,7 @@ class HomeAssistant {
     callback(this)
   }
 
-  addIconMarker(lng, lat, { entityId, icon, radius, entity_picture, friendly_name }) {
+  addIconMarker(lng, lat, { entityId, icon, radius, entity_picture, friendly_name }, isClick = true) {
     const point = new BMapGL.Point(lng, lat)
     const { map } = this
     let html = ''
@@ -129,15 +129,18 @@ class HomeAssistant {
     // 绘制图标
     let myRichMarker1 = new BMapGLLib.RichMarker(html, point);
     map.addOverlay(myRichMarker1);
-    myRichMarker1.addEventListener('click', (e) => {
-      this.fireEvent('hass-more-info', { entityId })
-    })
-    myRichMarker1.addEventListener('mouseup', function (e) {
-      if (event.button == 2) {
-        let pos = e.currentTarget._position
-        map.centerAndZoom(new BMapGL.Point(pos.lng, pos.lat), 15);
-      }
-    })
+
+    if (isClick) {
+      myRichMarker1.addEventListener('click', (e) => {
+        this.fireEvent('hass-more-info', { entityId })
+      })
+      myRichMarker1.addEventListener('mouseup', function (e) {
+        if (event.button == 2) {
+          let pos = e.currentTarget._position
+          map.centerAndZoom(new BMapGL.Point(pos.lng, pos.lat), 15);
+        }
+      })
+    }
   }
 
   startTrack(arr) {
