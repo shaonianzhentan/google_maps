@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>百度地图</title>
+  <title>卡片</title>
   <link rel="stylesheet" type="text/css" href="https://api.map.baidu.com/res/webgl/10/bmap.css" />
   <link href="./font/css/materialdesignicons.min.css" rel="stylesheet">
   <link href="./css/index.css" rel="stylesheet">
@@ -14,8 +14,32 @@
   <script src="./js/lib.js"></script>
   <script src="./js/ha.js"></script>
   <script>
-    ha.loadMap(({ map }) => {
-
+    function readerMarker(entityId, zoom = 20, isClick = false) {
+      ha.readerMarker(({ hass }) => {
+        const state = hass.states[entityId]
+        const { latitude, longitude } = state.attributes
+        if (latitude && longitude) {
+          try {
+            const { icon, radius, entity_picture, friendly_name, map } = state.attributes
+            // 坐标转换
+            let arr = ha.transform([longitude, latitude], map === 'gaode' ? gcoord.GCJ02 : gcoord.WGS84, gcoord.BD09)
+            let lng = arr[0]
+            let lat = arr[1]
+            ha.addIconMarker(lng, lat, { entityId, entity_picture, friendly_name }, isClick)
+            ha.centerAndZoom(lng, lat, zoom);
+          } catch (ex) {
+            console.error(ex)
+          }
+        }
+      })
+    }
+    ha.loadMap().then(() => {
+      const hashchange = () => {
+        const query = new URLSearchParams(`?${location.hash.substring(1)}`)
+        readerMarker(query.get('id'), parseInt(query.get('zoom')), query.get('click') == 1)
+      }
+      window.onhashchange = hashchange
+      hashchange()
     })
   </script>
 </body>

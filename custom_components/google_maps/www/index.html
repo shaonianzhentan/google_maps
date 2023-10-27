@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="cn">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,19 +9,18 @@
   <link href="./font/css/materialdesignicons.min.css" rel="stylesheet">
   <link href="./css/index.css" rel="stylesheet">
 </head>
+
 <body>
   <script src="./js/gcoord.js"></script>
   <script src="./js/lib.js"></script>
   <script src="./js/ha.js"></script>
   <script>
-    function readerMarker() {
+    function readerMarker(initd) {
       ha.readerMarker(({ hass }) => {
-
         Object.entries(hass.states).forEach(([entityId, state]) => {
           const { latitude, longitude } = state.attributes
           if (latitude && longitude) {
             try {
-
               const { icon, radius, entity_picture, friendly_name, map } = state.attributes
               // 坐标转换
               let arr = ha.transform([longitude, latitude], map === 'gaode' ? gcoord.GCJ02 : gcoord.WGS84, gcoord.BD09)
@@ -31,9 +31,14 @@
               const domain = entityId.split('.')[0]
 
               if (domain === 'zone') {
-                ha.addIconMarker(point, { entityId, icon, radius })
+                ha.addIconMarker(lng, lat, { entityId, icon, radius })
+                // 初始化居中显示
+                if (initd) {
+                  ha.centerAndZoom(lng, lat, 12);
+                  initd = false
+                }
               } else {
-                ha.addIconMarker(point, { entityId, entity_picture, friendly_name })
+                ha.addIconMarker(lng, lat, { entityId, entity_picture, friendly_name })
               }
 
             } catch (ex) {
@@ -45,10 +50,10 @@
     }
 
 
-    ha.loadMap(({ map }) => {
+    ha.loadMap().then(() => {
 
       // 渲染标记
-      readerMarker()
+      readerMarker(true)
 
       // 菜单
       ha.addContextMenu([{

@@ -74,9 +74,9 @@
       ha.centerAndZoom(lng, lat, 17);
     })
 
-    ha.loadMap(async ({ hass }) => {
+    ha.loadMap().then(async ({ hass }) => {
       ha.loadScript("https://mapopen.bj.bcebos.com/github/BMapGLLib/TrackAnimation/src/TrackAnimation.min.js")
-      map.centerAndZoom(ha.lng, ha.lat, 17);
+      ha.centerAndZoom(ha.lng, ha.lat, 17);
 
       // 初始化时间
       const today = new Date()
@@ -130,10 +130,7 @@
             const list = res[0].filter(ele => ele.state !== 'unknown'
               && ele.attributes && ele.attributes.latitude && ele.attributes.longitude)
             const points = list.map(({ attributes: { latitude, longitude, map } }) => {
-
-              let [lng, lat] = ha.transform([longitude, latitude], map === 'gaode' ? gcoord.GCJ02 : gcoord.WGS84, gcoord.BD09)
-
-              return { lat, lng }
+              return ha.transform([longitude, latitude], map === 'gaode' ? gcoord.GCJ02 : gcoord.WGS84, gcoord.BD09)
             })
             resolve(points)
           })

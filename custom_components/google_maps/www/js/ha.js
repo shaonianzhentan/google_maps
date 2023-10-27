@@ -11,15 +11,16 @@ class HomeAssistant {
     this.lat = query.get('lat')
     // if (!this.hass) top.alert("请在HomeAssistant中使用");
     // if (!this.ak) top.alert("请配置百度地图浏览器AK密钥");
-  }
 
-  async loadMap() {
     const div = document.createElement('div')
     div.id = 'container'
     document.body.appendChild(div)
+  }
 
+  async loadMap() {
     window.BMapGL_loadScriptTime = (new Date).getTime();
-    await ha.loadScript("https://api.map.baidu.com/getscript?type=webgl&v=1.0&services=&t=20211018154739&ak=" + this.ak)
+    await this.loadScript("https://api.map.baidu.com/getscript?type=webgl&v=1.0&services=&t=20211018154739&ak=" + this.ak)
+    await this.loadScript("https://mapopen.bj.bcebos.com/github/BMapGLLib/RichMarker/src/RichMarker.min.js")
     const map = new BMapGL.Map('container');
     map.enableScrollWheelZoom(true);     //开启鼠标滚轮缩放
     const scaleCtrl = new BMapGL.ScaleControl();  // 添加比例尺控件
@@ -29,7 +30,7 @@ class HomeAssistant {
     this.map = map
 
     // 根据主题更换颜色
-    if (this.hass?.selectedTheme.dark) {
+    if (this.hass?.selectedTheme?.dark) {
       map.setMapStyleV2({ styleJson });
     }
 
@@ -42,7 +43,7 @@ class HomeAssistant {
 
   location(url) {
     parent.history.replaceState(null, null, url)
-    this.fireEvent('location-changed', { replace: true })
+    this.fireEvent('location-changed', { replace: false })
   }
 
   fireEvent(type, data = {}) {
@@ -67,6 +68,8 @@ class HomeAssistant {
   }
 
   addContextMenu(txtMenuItem) {
+    const { map } = this
+
     var menu = new BMapGL.ContextMenu();
     for (var i = 0; i < txtMenuItem.length; i++) {
       menu.addItem(new BMapGL.MenuItem(txtMenuItem[i].text, txtMenuItem[i].callback, 100));
@@ -95,6 +98,7 @@ class HomeAssistant {
    * @param {Function} callback 
    */
   readerMarker(callback) {
+    const { map } = this
     // 删除所有设备
     let allOverlay = map.getOverlays();
     for (let i = 0, j = allOverlay.length; i < j; i++) {
@@ -137,8 +141,9 @@ class HomeAssistant {
   }
 
   startTrack(arr) {
+    console.log(arr)
+    const { map } = this
     this.trackAni?.cancel()
-    console.log(points)
     const points = arr.map(([lng, lat]) => new BMapGL.Point(lng, lat))
     map.centerAndZoom(points[0], 17);
 
