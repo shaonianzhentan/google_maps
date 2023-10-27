@@ -2,272 +2,147 @@
 <html>
 
 <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>轨迹视角</title>
-    <style type="text/css">
-        body,
-        html {
-            width: 100%;
-            height: 100%;
-            margin: 0;
-            font-family: "微软雅黑";
-        }
+  <meta charset="utf-8" />
+  <meta name="viewport" content="initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>轨迹视角</title>
+  <link href="./css/index.css" rel="stylesheet">
+  <style type="text/css">
+    ul li {
+      list-style: none;
+    }
 
-        #container {
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-        }
+    .drawing-panel {
+      z-index: 999;
+      position: fixed;
+      bottom: 3rem;
+      margin-left: 1rem;
+      padding: 1rem 1rem;
+      border-radius: .25rem;
+      background-color: #fff;
+      box-shadow: 0 2px 6px 0 rgba(27, 142, 236, 0.5);
+    }
 
-        ul li {
-            list-style: none;
-        }
+    .drawing-panel li {
+      float: left;
+    }
 
-        .drawing-panel {
-            z-index: 999;
-            position: fixed;
-            bottom: 3rem;
-            margin-left: 1rem;
-            padding: 1rem 1rem;
-            border-radius: .25rem;
-            background-color: #fff;
-            box-shadow: 0 2px 6px 0 rgba(27, 142, 236, 0.5);
-        }
+    .drawing-panel select {
+      padding: 5px;
+      width: 97px;
+    }
 
-        .drawing-panel li {
-            float: left;
-        }
+    .btn {
+      background-color: #fff;
+      color: rgba(27, 142, 236, 1);
+      font-size: 14px;
+      border: 1px solid rgba(27, 142, 236, 1);
+      border-radius: 5px;
+      padding: 4px 8px;
+      user-select: none;
+    }
 
-        .drawing-panel select {
-            padding: 5px;
-            width: 97px;
-        }
-
-        .btn {
-            background-color: #fff;
-            color: rgba(27, 142, 236, 1);
-            font-size: 14px;
-            border: 1px solid rgba(27, 142, 236, 1);
-            border-radius: 5px;
-            padding: 4px 8px;
-            user-select: none;
-        }
-
-        .btn:hover {
-            background-color: rgba(27, 142, 236, 0.8);
-            color: #fff;
-        }
-    </style>
+    .btn:hover {
+      background-color: rgba(27, 142, 236, 0.8);
+      color: #fff;
+    }
+  </style>
 </head>
 
 <body>
-    <div id="container"></div>
-    <div class="drawing-panel" style="z-index: 99;">
-        <input type="datetime-local" id="txtStartTime" />
-        <br />
-        <input type="datetime-local" id="txtEndTime" style="margin:10px 0;" />
-        <div>
-            <select id="device"></select>
-            <button id="btnStart" class="btn" onclick="startAni()">查看轨迹</button>
-        </div>
+  <div class="drawing-panel" style="z-index: 99;">
+    <input type="datetime-local" id="txtStartTime" />
+    <br />
+    <input type="datetime-local" id="txtEndTime" style="margin:10px 0;" />
+    <div>
+      <select id="device"></select>
+      <button id="btnStart" class="btn" onclick="startAni()">查看轨迹</button>
     </div>
-    <script>
-        var ha = {
-            initd: true,
-            ak: '',
-            trackAni: null,
-            get hass() {
-                return parent.document.querySelector('home-assistant').hass
-            },
-            async init() {
-                let query = new URLSearchParams(location.search)
-                let ak = query.get('ak')
-                let lng = query.get('lng')
-                let lat = query.get('lat')
-                ha.ak = ak
-                window.BMapGL_loadScriptTime = (new Date).getTime();
-                await ha.loadScript("https://api.map.baidu.com/getscript?type=webgl&v=1.0&services=&t=20211018154739&ak=" + ak)
-                await ha.loadScript("https://mapopen.bj.bcebos.com/github/BMapGLLib/TrackAnimation/src/TrackAnimation.min.js")
+  </div>
+  <script src="./js/gcoord.js"></script>
+  <script src="./js/lib.js"></script>
+  <script src="./js/ha.js"></script>
+  <script>
+    const select = document.querySelector('#device')
+    const btnStart = document.querySelector('#btnStart')
+    select.addEventListener('change', async () => {
+      ha.trackAni?.cancel()
 
-                var map = new BMapGL.Map('container');
-                window.map = map
-                map.enableScrollWheelZoom(true);     //开启鼠标滚轮缩放
-                var scaleCtrl = new BMapGL.ScaleControl();  // 添加比例尺控件
-                map.addControl(scaleCtrl);
-                var zoomCtrl = new BMapGL.ZoomControl();  // 添加比例尺控件
-                map.addControl(zoomCtrl);
+      const { attributes, state } = ha.hass.states[select.value]
+      const { longitude, latitude, map } = attributes
 
-                map.centerAndZoom(new BMapGL.Point(lng, lat), 17);
+      let [lng, lat] = ha.transform([longitude, latitude], map === 'gaode' ? gcoord.GCJ02 : gcoord.WGS84, gcoord.BD09)
+      ha.centerAndZoom(lng, lat, 17);
+    })
 
-                const today = new Date()
-                today.setHours(today.getHours() + 8)
-                const endTime = today.toISOString()
-                today.setDate(today.getDate() - 1)
-                const startTime = today.toISOString()
-                document.querySelector('#txtStartTime').value = startTime.substring(0, 16)
-                document.querySelector('#txtEndTime').value = endTime.substring(0, 16)
-            },
-            // 触发事件
-            fire(type, data) {
-                const event = new Event(type, {
-                    bubbles: true,
-                    cancelable: false,
-                    composed: true
-                });
-                event.detail = data;
-                top.document.querySelector('home-assistant').dispatchEvent(event);
-            },
-            loadScript: function (src) {
-                return new Promise((resolve) => {
-                    let script = document.createElement('script')
-                    script.src = src
-                    script.onload = () => {
-                        resolve()
-                    }
-                    document.body.append(script)
-                })
-            },
-            async gps2baidu(arr) {
-                return new Promise((resolve, reject) => {
-                    new BMapGL.Convertor().translate(arr, COORDINATES_WGS84, COORDINATES_BD09,
-                        function (res) {
-                            console.log(res)
-                            if (res.points) {
-                                resolve(res.points)
-                            } else {
-                                reject(new Error('转换坐标失败'))
-                            }
-                        })
-                })
-            },
-            async gaode2baidu(arr) {
-                return new Promise((resolve) => {
-                    new BMapGL.Convertor().translate(arr, COORDINATES_GCJ02, COORDINATES_BD09,
-                        function ({ points }) {
-                            resolve(points)
-                        })
-                })
-            },
-            async translateGPS(points) {
-                const { lng, lat } = points[0]
-                let baiduPoints = null
-                const entity_id = document.querySelector('#device').value
-                
-                const { attributes, state } = ha.hass.states[entity_id]
-                if(attributes.map === 'gaode'){
-                    // 高德
-                    baiduPoints = await ha.gaode2baidu([new BMapGL.Point(lng, lat)])                    
-                }else{
-                    // GPS
-                    baiduPoints = await ha.gps2baidu([new BMapGL.Point(lng, lat)])
-                }
+    ha.loadMap(async ({ hass }) => {
+      ha.loadScript("https://mapopen.bj.bcebos.com/github/BMapGLLib/TrackAnimation/src/TrackAnimation.min.js")
+      map.centerAndZoom(ha.lng, ha.lat, 17);
 
-                let x = baiduPoints[0].lng
-                let y = baiduPoints[0].lat
-                // 计算偏移量
-                const offsetX = x - lng
-                const offsetY = y - lat
-                console.log(offsetX, offsetY)
-                console.log(lng, lat, x, y)
-                return points.map(ele => new BMapGL.Point(parseFloat(ele.lng) + offsetX, parseFloat(ele.lat) + offsetY))
-            },
+      // 初始化时间
+      const today = new Date()
+      today.setHours(today.getHours() + 8)
+      const endTime = today.toISOString()
+      today.setDate(today.getDate() - 1)
+      const startTime = today.toISOString()
+      document.querySelector('#txtStartTime').value = startTime.substring(0, 16)
+      document.querySelector('#txtEndTime').value = endTime.substring(0, 16)
 
-            async startTrack(point) {
-                ha.trackAni?.cancel()
-                const points = await ha.translateGPS(point)
-                console.log(points)
-                map.centerAndZoom(points[0], 17);
-                var pl = new BMapGL.Polyline(points);
-                ha.trackAni = new BMapGLLib.TrackAnimation(map, pl, {
-                    overallView: true,
-                    tilt: 30,
-                    duration: 20000,
-                    delay: 300
-                });
-                ha.trackAni.start()
-            }
-        }
-        ha.init()
+      // 获取设备
+      Object.keys(hass.states).filter(ele => ['person', 'device_tracker'].includes(ele.split('.')[0])).forEach(entity_id => {
+        const { friendly_name } = hass.states[entity_id].attributes
 
-        let loading = false
-        function startAni() {
-            console.log(select.value)
-            let startTime = document.querySelector('#txtStartTime').value
-            let endTime = document.querySelector('#txtEndTime').value
-            console.log(startTime, endTime)
-            if (!startTime || !endTime) {
-                return top.alert("请选择要查看的开始和结束时间")
-            }
-            // 获取坐标点
-            if (loading) {
-                return
-            }
-            loading = true
-            getPoints(select.value, new Date(startTime).toISOString(), new Date(endTime).toISOString()).then((point) => {
-                loading = false
-                if (point.length < 2) return top.alert("必须得有两个定位点才能使用")
-                ha.startTrack(point)
+        const option = document.createElement('option')
+        option.text = friendly_name
+        option.value = entity_id
+        select.appendChild(option)
+      })
+
+    })
+
+    let loading = false
+    function startAni() {
+      console.log(select.value)
+      let startTime = document.querySelector('#txtStartTime').value
+      let endTime = document.querySelector('#txtEndTime').value
+      console.log(startTime, endTime)
+      if (!startTime || !endTime) {
+        return top.alert("请选择要查看的开始和结束时间")
+      }
+      // 获取坐标点
+      if (loading) {
+        return
+      }
+      loading = true
+      getPoints(select.value, new Date(startTime).toISOString(), new Date(endTime).toISOString()).then((arr) => {
+        loading = false
+        if (arr.length < 2) return top.alert("必须得有两个定位点才能使用")
+        ha.startTrack(arr)
+      })
+    }
+
+    function getPoints(entity_id, start_time, end_time) {
+      return new Promise((resolve) => {
+        ha.hass
+          .fetchWithAuth(`/api/history/period/${start_time}?filter_entity_id=${entity_id}&end_time=${end_time}`)
+          .then(res => res.json()).then(res => {
+            if (res.length == 0) resolve([])
+
+            const list = res[0].filter(ele => ele.state !== 'unknown'
+              && ele.attributes && ele.attributes.latitude && ele.attributes.longitude)
+            const points = list.map(({ attributes: { latitude, longitude, map } }) => {
+
+              let [lng, lat] = ha.transform([longitude, latitude], map === 'gaode' ? gcoord.GCJ02 : gcoord.WGS84, gcoord.BD09)
+
+              return { lat, lng }
             })
-        }
+            resolve(points)
+          })
+      })
+    }
 
-        function getPoints(entity_id, start_time, end_time) {
-            return new Promise((resolve) => {
-                ha.hass
-                    .fetchWithAuth(`/api/history/period/${start_time}?filter_entity_id=${entity_id}&end_time=${end_time}`)
-                    .then(res => res.json()).then(res => {
-                        if (res.length == 0) resolve([])
 
-                        const list = res[0].filter(ele => ele.state !== 'unknown'
-                            && ele.attributes && ele.attributes.latitude && ele.attributes.longitude)
-                        const points = list.map(({ attributes: { latitude, longitude } }) => {
-                            return {
-                                lat: latitude,
-                                lng: longitude
-                            }
-                        })
-                        resolve(points)
-                    })
-            })
-        }
 
-        function getDevice() {
-            const states = ha.hass.states
-            const entities = Object.keys(states).filter(ele => ['person', 'device_tracker'].includes(ele.split('.')[0]))
-            return entities.map(entity_id => {
-                return {
-                    id: entity_id,
-                    name: states[entity_id].attributes.friendly_name
-                }
-            })
-        }
-
-        const select = document.querySelector('#device')
-        const btnStart = document.querySelector('#btnStart')
-        select.addEventListener('change', async () => {
-            ha.trackAni?.cancel()
-            
-            const { attributes, state } = ha.hass.states[select.value]
-            let lng = attributes.longitude
-            let lat = attributes.latitude
-            let points = null
-            if(attributes.map === 'gaode'){
-                // 高德
-                points = await ha.gaode2baidu([new BMapGL.Point(lng, lat)])                    
-            }else{
-                // GPS
-                points = await ha.gps2baidu([new BMapGL.Point(lng, lat)])
-            }
-            map.centerAndZoom(points[0], 17);
-        })
-
-        getDevice().forEach(({ id, name }) => {
-            const option = document.createElement('option')
-            option.text = name
-            option.value = id
-            select.appendChild(option)
-        })
-    </script>
+  </script>
 </body>
 
 </html>
