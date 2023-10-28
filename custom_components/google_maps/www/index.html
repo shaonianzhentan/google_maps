@@ -8,9 +8,18 @@
   <link rel="stylesheet" type="text/css" href="https://api.map.baidu.com/res/webgl/10/bmap.css" />
   <link href="./font/css/materialdesignicons.min.css" rel="stylesheet">
   <link href="./css/index.css" rel="stylesheet">
+  <style>
+    #device {
+      position: fixed;
+      left: 5px;
+      bottom: 40px;
+      z-index: 100;
+    }
+  </style>
 </head>
 
 <body>
+  <select id="device"></select>
   <script src="./js/gcoord.js"></script>
   <script src="./js/lib.js"></script>
   <script src="./js/ha.js"></script>
@@ -24,7 +33,7 @@
               const { icon, radius, entity_picture, friendly_name, map } = state.attributes
               // 坐标转换
               const [lng, lat] = ha.transform([longitude, latitude], map === 'gaode' ? gcoord.GCJ02 : gcoord.WGS84, gcoord.BD09)
-      
+
               // 添加标记
               const domain = entityId.split('.')[0]
 
@@ -48,7 +57,7 @@
     }
 
 
-    ha.loadMap().then(() => {
+    ha.loadMap().then(({ hass }) => {
 
       // 渲染标记
       readerMarker(true)
@@ -77,7 +86,7 @@
         text: '设置我的家到这里',
         callback: function (point) {
           const [lng, lat] = ha.transform([point.lng, point.lat], gcoord.BD09, gcoord.WGS84)
-          ha.hass.callService('homeassistant', 'set_location', {
+          hass.callService('homeassistant', 'set_location', {
             latitude: lat,
             longitude: lng
           })
@@ -86,6 +95,29 @@
           }, 1000)
         }
       }])
+
+      // 绑定设备
+      const select = document.querySelector('#device')
+      select.addEventListener('change', () => {
+        const entityId = select.value
+        const state = hass.states[entityId]
+        const { longitude, latitude, map, entity_picture, friendly_name } = state.attributes
+
+        let [lng, lat] = ha.transform([longitude, latitude], map === 'gaode' ? gcoord.GCJ02 : gcoord.WGS84, gcoord.BD09)
+        
+        ha.centerAndZoom(lng, lat, 18);
+      })
+
+      Object.keys(hass.states).filter(ele => ['person', 'device_tracker'].includes(ele.split('.')[0])).forEach(entity_id => {
+        const { friendly_name, latitude, longitude } = hass.states[entity_id].attributes
+
+        if (latitude && longitude) {
+          const option = document.createElement('option')
+          option.text = friendly_name
+          option.value = entity_id
+          select.appendChild(option)
+        }
+      })
 
     })
   </script>
