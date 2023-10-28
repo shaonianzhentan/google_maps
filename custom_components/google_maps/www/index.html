@@ -108,7 +108,7 @@
         ha.centerAndZoom(lng, lat, 18);
       })
 
-      Object.keys(hass.states).filter(ele => ['person', 'device_tracker'].includes(ele.split('.')[0])).forEach(entity_id => {
+      Object.keys(hass.states).filter(ele => ['person', 'device_tracker', 'zone'].includes(ele.split('.')[0])).forEach(entity_id => {
         const { friendly_name, latitude, longitude } = hass.states[entity_id].attributes
 
         if (latitude && longitude) {
