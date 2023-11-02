@@ -74,15 +74,15 @@ class HomeAssistant {
     for (var i = 0; i < txtMenuItem.length; i++) {
       menu.addItem(new BMapGL.MenuItem(txtMenuItem[i].text, txtMenuItem[i].callback, 100));
     }
-    map.addContextMenu(menu);
-
     // 移动端长按事件
     if ("ontouchstart" in window) {
+      menu.addItem(new BMapGL.MenuItem('取消操作', () => { menu.hide() }, 100));
+
       let isLongPress = false
       map.addEventListener('click', function (e) {
         if (isLongPress) {
-          menu.curPixel = e.pixel
-          menu.curPoint = e.point
+          const { x, y } = e.pixel
+          menu.setPosition(x, y)
           menu.show();
           isLongPress = false
         }
@@ -91,6 +91,8 @@ class HomeAssistant {
         isLongPress = true
       })
     }
+
+    map.addContextMenu(menu);
   }
 
   /**
