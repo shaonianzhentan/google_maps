@@ -19,6 +19,12 @@ device_tracker.xxxxx:
   map: gaode
 ```
 
+更多信息地图卡片显示
+```yaml
+device_tracker.xxxxx:
+  custom_ui_more_info: baidu-map
+```
+
 ## 如果这个项目对你有帮助，请我喝杯<del style="font-size: 14px;">咖啡</del>奶茶吧😘
 |支付宝|微信|
 |---|---|
