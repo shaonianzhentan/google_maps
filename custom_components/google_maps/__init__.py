@@ -3,7 +3,7 @@ from homeassistant.core import HomeAssistant
 import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
 from homeassistant.components import websocket_api
-from homeassistant.components.frontend import async_register_built_in_panel, add_extra_js_url
+from homeassistant.components.frontend import async_register_built_in_panel, add_extra_js_url, async_remove_panel
 from homeassistant.components.http import StaticPathConfig
 
 from .manifest import manifest
@@ -49,7 +49,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 )
             )
 
-    hass.components.websocket_api.async_register_command(
+    websocket_api.async_register_command(
             DOMAIN,
             receive_data,
             SCHEMA_WEBSOCKET
@@ -57,5 +57,5 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     return True
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    hass.components.frontend.async_remove_panel(DOMAIN)
+    async_remove_panel(DOMAIN)
     return True
