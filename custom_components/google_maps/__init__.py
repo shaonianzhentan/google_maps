@@ -3,6 +3,8 @@ from homeassistant.core import HomeAssistant
 import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
 from homeassistant.components import websocket_api
+from homeassistant.components.frontend import async_register_built_in_panel, add_extra_js_url
+from homeassistant.components.http import StaticPathConfig
 
 from .manifest import manifest
 DOMAIN = manifest.domain
@@ -19,16 +21,19 @@ SCHEMA_WEBSOCKET = websocket_api.BASE_COMMAND_MESSAGE_SCHEMA.extend(
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     ak = entry.data.get('ak')
-    hass.http.register_static_path("/baidu_maps_www", hass.config.path("custom_components/" + DOMAIN + "/www"), False)
-    hass.components.frontend.async_register_built_in_panel(
+    LOCAL_PATH = "/baidu_maps_www"
+    await hass.http.async_register_static_paths(
+        [ StaticPathConfig(LOCAL_PATH, hass.config.path("custom_components/" + DOMAIN + "/www"), False) ]
+    )
+    async_register_built_in_panel(
                         "iframe",
                         "百度地图",
                         "mdi:google-maps",
                         DOMAIN,
-                        { "url": f"/baidu_maps_www/index.html?ak={ak}&v={VERSION}" },
+                        { "url": f"{LOCAL_PATH}/index.html?ak={ak}&v={VERSION}" },
                         require_admin=False)
 
-    hass.components.frontend.add_extra_js_url(hass, f'/baidu_maps_www/map.js?v={VERSION}')
+    add_extra_js_url(hass, f'{LOCAL_PATH}/map.js?v={VERSION}')
 
     def receive_data(hass, connection, msg):
         data = msg['data']
