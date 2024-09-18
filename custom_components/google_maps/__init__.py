@@ -25,7 +25,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     await hass.http.async_register_static_paths(
         [ StaticPathConfig(LOCAL_PATH, hass.config.path("custom_components/" + DOMAIN + "/www"), False) ]
     )
-    async_register_built_in_panel(
+    async_register_built_in_panel(hass,
                         "iframe",
                         "百度地图",
                         "mdi:google-maps",
@@ -49,7 +49,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 )
             )
 
-    websocket_api.async_register_command(
+    websocket_api.async_register_command(hass,
             DOMAIN,
             receive_data,
             SCHEMA_WEBSOCKET
@@ -57,5 +57,5 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     return True
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    async_remove_panel(DOMAIN)
+    async_remove_panel(hass, DOMAIN)
     return True
